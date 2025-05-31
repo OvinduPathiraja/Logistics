@@ -1,47 +1,46 @@
 import React, { useEffect, useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface Shipment {
+  Status: string;
+}
 
 const ShipmentChart: React.FC = () => {
+  const [chartData, setChartData] = useState<{ name: string; count: number }[]>([]);
   const [totalShipments, setTotalShipments] = useState(0);
   const [delivered, setDelivered] = useState(0);
   const [inTransit, setInTransit] = useState(0);
-  const [chartData, setChartData] = useState<number[]>([]);
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
 
   useEffect(() => {
-    const fetchShipments = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('https://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod');
+        const response = await fetch(
+          'https://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod'
+        );
         const result = await response.json();
-        const shipments = JSON.parse(result.body);
+        const shipments: Shipment[] = JSON.parse(result.body);
 
-        const total = shipments.length;
-        const deliveredCount = shipments.filter((s: any) => s['Status'] === 'Delivered').length;
-        const inTransitCount = shipments.filter((s: any) => s['Status'] === 'In Transit').length;
+        setTotalShipments(shipments.length);
+        setDelivered(shipments.filter(s => s.Status === 'Delivered').length);
+        setInTransit(shipments.filter(s => s.Status === 'In Transit').length);
 
-        setTotalShipments(total);
-        setDelivered(deliveredCount);
-        setInTransit(inTransitCount);
+        // Evenly divide shipments into 9 chunks to simulate monthly data
+        const chunkSize = Math.ceil(shipments.length / 9);
+        const grouped = Array.from({ length: 9 }, (_, i) => ({
+          name: months[i],
+          count: shipments.slice(i * chunkSize, (i + 1) * chunkSize).length,
+        }));
 
-        // Simulate 9 bars (months) using random groupings
-        const groupSize = Math.ceil(total / 9);
-        const counts: number[] = [];
-
-        for (let i = 0; i < 9; i++) {
-          const group = shipments.slice(i * groupSize, (i + 1) * groupSize);
-          counts.push(group.length);
-        }
-
-        setChartData(counts);
-      } catch (error) {
-        console.error('Failed to fetch shipment data:', error);
+        setChartData(grouped);
+      } catch (err) {
+        console.error('Error fetching data:', err);
       }
     };
 
-    fetchShipments();
+    fetchData();
   }, []);
-
-  const maxValue = Math.max(...chartData, 1);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -54,31 +53,15 @@ const ShipmentChart: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-6">
-        <div className="relative h-64">
-          {/* Y-axis labels */}
-          <div className="absolute top-0 left-0 h-full flex flex-col justify-between text-xs text-gray-500">
-            <span>{maxValue}</span>
-            <span>{Math.round(maxValue / 2)}</span>
-            <span>0</span>
-          </div>
-
-          {/* Chart area */}
-          <div className="ml-8 h-full flex items-end">
-            {chartData.map((value, index) => (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div
-                  className="w-6 bg-blue-500 rounded-t-md mb-2"
-                  style={{
-                    height: `${(value / maxValue) * 90}%`,
-                    opacity: 0.7 + (index / chartData.length) * 0.3,
-                  }}
-                ></div>
-                <span className="text-xs text-gray-500">{months[index]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="w-full h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData}>
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-4 text-center">
