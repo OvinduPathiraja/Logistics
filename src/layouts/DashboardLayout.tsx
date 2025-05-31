@@ -24,10 +24,10 @@ const DashboardLayout: React.FC = () => {
   
   const signOutRedirect = () => {
     auth.signoutRedirect({
-    post_logout_redirect_uri: "https://vercel.com/codict008ovindugmailcoms-projects/logistics/Fr5Ec9bNL2yjd1Fqpa7m2Xubuqkr",
+    post_logout_redirect_uri: "https://logistics-one-nu.vercel.app/",
   });
     const clientId = "3up0p11te2v4br2jgamahgqc5p";
-  const logoutUri = "https://vercel.com/codict008ovindugmailcoms-projects/logistics/Fr5Ec9bNL2yjd1Fqpa7m2Xubuqkr";
+  const logoutUri = "https://logistics-one-nu.vercel.app/";
   const cognitoDomain = "https://eu-north-1iaaubnabo.auth.eu-north-1.amazoncognito.com";
   window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
 };
