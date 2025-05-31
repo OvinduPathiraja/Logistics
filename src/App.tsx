@@ -13,6 +13,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import LoadingPage from './pages/LoadingPage';
 import MapPage from './pages/Map/Map';
 import CsvUploadForm from './pages/Logistics/components/NewShipment';
+import Home2 from './pages/Home/Home2';
 
 // Auth components
 import AuthGuard from './components/auth/AuthGuard';
@@ -45,6 +46,9 @@ function App() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<HomePage />} />
+      <Route path="/home" element={<Home2 />} />
+      
+      {/* Redirect to dashboard if authenticated */}
       
       {/* Protected routes */}
       <Route element={<AuthGuard />}>
