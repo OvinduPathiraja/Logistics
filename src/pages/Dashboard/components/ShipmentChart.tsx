@@ -2,16 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Shipment {
+  TransportationMethod: string;
   Status: string;
 }
 
 const ShipmentChart: React.FC = () => {
-  const [chartData, setChartData] = useState<{ name: string; count: number }[]>([]);
+  const [chartData, setChartData] = useState<{ method: string; count: number }[]>([]);
   const [totalShipments, setTotalShipments] = useState(0);
   const [delivered, setDelivered] = useState(0);
   const [inTransit, setInTransit] = useState(0);
-
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -26,16 +25,21 @@ const ShipmentChart: React.FC = () => {
         setDelivered(shipments.filter(s => s.Status === 'Delivered').length);
         setInTransit(shipments.filter(s => s.Status === 'In Transit').length);
 
-        // Evenly divide shipments into 9 chunks to simulate monthly data
-        const chunkSize = Math.ceil(shipments.length / 9);
-        const grouped = Array.from({ length: 9 }, (_, i) => ({
-          name: months[i],
-          count: shipments.slice(i * chunkSize, (i + 1) * chunkSize).length,
+        // Count by transportation method
+        const methodCountMap: Record<string, number> = {};
+        for (const shipment of shipments) {
+          const method = shipment.TransportationMethod || 'Unknown';
+          methodCountMap[method] = (methodCountMap[method] || 0) + 1;
+        }
+
+        const chartFormatted = Object.entries(methodCountMap).map(([method, count]) => ({
+          method,
+          count,
         }));
 
-        setChartData(grouped);
+        setChartData(chartFormatted);
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error fetching shipment data:', err);
       }
     };
 
@@ -45,21 +49,16 @@ const ShipmentChart: React.FC = () => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-gray-800">Shipment Overview</h2>
-        <div className="flex space-x-2">
-          <button className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md">Monthly</button>
-          <button className="px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded-md">Quarterly</button>
-          <button className="px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded-md">Yearly</button>
-        </div>
+        <h2 className="text-lg font-semibold text-gray-800">Shipment by Transportation Method</h2>
       </div>
 
       <div className="w-full h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
-            <XAxis dataKey="name" />
+            <XAxis dataKey="method" />
             <YAxis />
             <Tooltip />
-            <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
