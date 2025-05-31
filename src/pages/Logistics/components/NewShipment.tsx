@@ -42,7 +42,7 @@ const CsvUploadForm = () => {
       const url = 'https://xwf1vv5ixd.execute-api.eu-north-1.amazonaws.com/prod/ultraod-s3-1/test.csv';
 
       const res = await fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'text/csv',
         },
