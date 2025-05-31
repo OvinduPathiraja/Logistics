@@ -50,16 +50,16 @@ const CsvUploadForm = () => {
       });
 
       if (res.ok) {
-        alert('✅ Upload successful!');
+        alert('Upload successful!');
         setFile(null);
       } else {
         const errText = await res.text();
         console.error('Upload failed:', errText);
-        alert('❌ Upload failed: ' + errText);
+        alert('Upload failed: ' + errText);
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('⚠️ An error occurred during upload.');
+      alert('An error occurred during upload.');
     } finally {
       setUploading(false);
     }
