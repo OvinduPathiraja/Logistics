@@ -10,7 +10,6 @@ const ShipmentChart: React.FC = () => {
   const [shipments, setShipments] = useState<any[]>([]);
   const [methodData, setMethodData] = useState<{ method: string; count: number }[]>([]);
   const [statusData, setStatusData] = useState<{ name: string; value: number }[]>([]);
-  const [timeData, setTimeData] = useState<{ month: string; count: number }[]>([]);
   const [countryData, setCountryData] = useState<{ country: string; count: number }[]>([]);
 
   const [summary, setSummary] = useState({
@@ -54,15 +53,6 @@ const ShipmentChart: React.FC = () => {
         statusMap[status] = (statusMap[status] || 0) + 1;
       });
       setStatusData(Object.entries(statusMap).map(([status, count]) => ({ name: status, value: count })));
-
-      // Time Chart (monthly - assuming 'Date' field is like '2024-12-20')
-      const timeMap: Record<string, number> = {};
-      data.forEach((d: any) => {
-        const date = new Date(d.Date || d['Shipment Date']);
-        const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-        timeMap[key] = (timeMap[key] || 0) + 1;
-      });
-      setTimeData(Object.entries(timeMap).map(([month, count]) => ({ month, count })));
 
       // Country Chart
       const countryMap: Record<string, number> = {};
@@ -123,18 +113,6 @@ const ShipmentChart: React.FC = () => {
             </Pie>
             <Tooltip />
           </PieChart>
-        </ResponsiveContainer>
-      </ChartCard>
-
-      {/* Shipment Trend Chart */}
-      <ChartCard title="Monthly Shipment Trend">
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={timeData}>
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} />
-          </LineChart>
         </ResponsiveContainer>
       </ChartCard>
 

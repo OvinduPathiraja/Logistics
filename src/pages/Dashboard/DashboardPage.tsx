@@ -1,5 +1,5 @@
 import React from 'react';
-import StatCards from './components/StatCards';
+import StatCards from './components/FinanceStats';
 import TasksBoard from './components/TasksBoard';
 import RecentActivity from './components/RecentActivity';
 import ShipmentChart from './components/ShipmentChart';
