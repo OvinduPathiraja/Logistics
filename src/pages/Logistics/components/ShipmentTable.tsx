@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Eye, Edit, Trash } from 'lucide-react';
-import { useAuth } from 'react-oidc-context'; // ✅ Using Cognito context
+import { useAuth } from 'react-oidc-context'; 
 
 interface ShipmentFilters {
   clientName: string;
@@ -26,8 +26,8 @@ interface Shipment {
 }
 
 const ShipmentTable: React.FC<ShipmentProps> = ({ filters }) => {
-  const auth = useAuth(); // ✅ Use Cognito Auth
-  const userEmail = auth.user?.profile?.email ?? ''; // ✅ Get email from OIDC profile
+  const auth = useAuth(); 
+  const userEmail = auth.user?.profile?.email ?? ''; 
 
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

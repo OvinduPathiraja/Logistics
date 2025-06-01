@@ -8,8 +8,8 @@ import { AuthProvider } from "react-oidc-context";
 const cognitoAuthConfig = {
   authority: "https://cognito-idp.eu-north-1.amazonaws.com/eu-north-1_IaAUBnAbo",
   client_id: "3up0p11te2v4br2jgamahgqc5p",
-  redirect_uri: "https://logistics-one-nu.vercel.app/dashboard",
-  post_logout_redirect_uri: "https://logistics-one-nu.vercel.app/",
+  redirect_uri: "https://main.d4tto6lduyd7i.amplifyapp.com/dashboard",
+  post_logout_redirect_uri: "https://main.d4tto6lduyd7i.amplifyapp.com/",
   response_type: "code",
   scope: "email openid phone",
 };
