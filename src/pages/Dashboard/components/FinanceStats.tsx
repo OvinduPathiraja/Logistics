@@ -106,38 +106,47 @@ const FinanceStats: React.FC = () => {
         <Card label="In Transit" value={summary.inTransit} color="bg-yellow-100" />
         <Card label="Cancelled" value={summary.cancelled} color="bg-red-100" />
         <Card label="Avg Weight (kg)" value={summary.avgWeight} color="bg-gray-100" />
+        <Card label="Total Shipment Value ($)" value={totalValue} color="bg-purple-100" />
+        <Card label="Avg Shipment Value ($)" value={avgValue} color="bg-indigo-100" />
       </div>
 
-      <ChartCard title="By Transport Method">
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={methodData}>
-            <XAxis dataKey="method" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="w-full md:w-1/2">
+          <ChartCard title="By Transport Method">
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={methodData}>
+                <XAxis dataKey="method" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
 
-      <ChartCard title="Status Distribution">
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie
-              data={statusData}
-              dataKey="value"
-              nameKey="name"
-              outerRadius={100}
-              fill="#8884d8"
-              label
-            >
-              {statusData.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
-      </ChartCard>
+        <div className="w-full md:w-1/2">
+          <ChartCard title="Status Distribution">
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={100}
+                  fill="#8884d8"
+                  label
+                >
+                  {statusData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+      </div>
+
 
       <ChartCard title="Top 5 Origin Countries">
         <ResponsiveContainer width="100%" height={250}>
@@ -149,12 +158,6 @@ const FinanceStats: React.FC = () => {
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
-
-      <h2 className="text-xl font-bold text-gray-800 mt-10">Finance Overview</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-        <Card label="Total Shipment Value ($)" value={totalValue} color="bg-purple-100" />
-        <Card label="Avg Shipment Value ($)" value={avgValue} color="bg-indigo-100" />
-      </div>
 
       <ChartCard title="Revenue by Transport Method">
         <ResponsiveContainer width="100%" height={250}>
