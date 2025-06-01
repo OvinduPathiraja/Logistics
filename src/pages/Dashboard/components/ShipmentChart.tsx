@@ -95,7 +95,6 @@ const ShipmentChart: React.FC = () => {
         </ResponsiveContainer>
       </ChartCard>
 
-      {/* Status Pie Chart */}
       <ChartCard title="Status Distribution">
         <ResponsiveContainer width="100%" height={250}>
           <PieChart>
@@ -116,7 +115,6 @@ const ShipmentChart: React.FC = () => {
         </ResponsiveContainer>
       </ChartCard>
 
-      {/* Top Countries Chart */}
       <ChartCard title="Top 5 Origin Countries">
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={countryData}>

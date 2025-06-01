@@ -1,79 +1,179 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Eye, Edit, Trash } from 'lucide-react';
+import { useAuth } from 'react-oidc-context'; // ✅ Using Cognito context
 
-const ShipmentChart: React.FC = () => {
-  const [chartData, setChartData] = useState<{ method: string; count: number }[]>([]);
-  const [totalShipments, setTotalShipments] = useState(0);
-  const [delivered, setDelivered] = useState(0);
-  const [inTransit, setInTransit] = useState(0);
+interface ShipmentFilters {
+  clientName: string;
+  company: string;
+  status: string;
+}
+
+interface ShipmentProps {
+  filters: ShipmentFilters;
+}
+
+interface Shipment {
+  id: string;
+  email: string;
+  clientName: string;
+  status: string;
+  method: string;
+  package: string;
+  country: string;
+  weight: number;
+  dimensions: string;
+  cost: string;
+}
+
+const ShipmentTable: React.FC<ShipmentProps> = ({ filters }) => {
+  const auth = useAuth(); // ✅ Use Cognito Auth
+  const userEmail = auth.user?.profile?.email ?? ''; // ✅ Get email from OIDC profile
+
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchShipments = async () => {
       try {
-        const response = await fetch(
-          'https://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod'
-        );
-        const result = await response.json();
-        const shipments = JSON.parse(result.body);
+        const response = await fetch('https://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod');
+        const data = await response.json();
+        const parsedBody = JSON.parse(data.body);
 
-        setTotalShipments(shipments.length);
-        setDelivered(shipments.filter((s: any) => s.Status === 'Delivered').length);
-        setInTransit(shipments.filter((s: any) => s.Status === 'In Transit').length);
-
-        // ✅ Group by 'Transport Method'
-        const methodCountMap: Record<string, number> = {};
-        for (const item of shipments) {
-          const method = item['Transport Method'] || 'Unknown';
-          methodCountMap[method] = (methodCountMap[method] || 0) + 1;
-        }
-
-        const chartFormatted = Object.entries(methodCountMap).map(([method, count]) => ({
-          method,
-          count,
+        const formattedShipments: Shipment[] = parsedBody.map((item: any) => ({
+          id: item['Shipment Number'],
+          email: item['Email'],
+          clientName: item['Client Name'],
+          status: item['Status'],
+          method: item['Transport Method'],
+          package: item['Package Type'],
+          country: item['Country Shipped From'],
+          weight: parseFloat(item['Weight (kg)']),
+          dimensions: item['Dimensions'],
+          cost: `$${parseFloat(item['Logistic Cost']).toFixed(2)}`,
         }));
 
-        setChartData(chartFormatted);
-      } catch (err) {
-        console.error('Error fetching shipment data:', err);
+        const userShipments = formattedShipments.filter(shipment => shipment.email === userEmail);
+
+        setShipments(userShipments);
+      } catch (error) {
+        console.error('Error fetching shipments:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
+    if (userEmail) {
+      fetchShipments();
+    }
+  }, [userEmail]);
+
+  const filteredShipments = shipments.filter((shipment) => {
+    const matchesClient = filters.clientName
+      ? shipment.clientName.toLowerCase().includes(filters.clientName.toLowerCase())
+      : true;
+
+    const matchesStatus = filters.status === 'All Statuses' || !filters.status
+      ? true
+      : shipment.status === filters.status;
+
+    return matchesClient && matchesStatus;
+  });
+
+  const getStatusClassName = (status: string) => {
+    switch (status) {
+      case 'In Transit':
+        return 'bg-blue-500 text-white';
+      case 'Delivered':
+        return 'bg-green-500 text-white';
+      case 'Shipped':
+        return 'bg-blue-600 text-white';
+      case 'Pending':
+        return 'bg-yellow-500 text-white';
+      case 'Cancelled':
+        return 'bg-red-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-gray-800">Shipment by Transport Method</h2>
-      </div>
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      {loading ? (
+        <div className="text-center py-6">
+          <p className="text-gray-500">Loading shipments...</p>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {[
+                    'Shipment ID',
+                    'Client Name',
+                    'Status',
+                    'Method',
+                    'Package',
+                    'Country',
+                    'Weight',
+                    'Dimensions',
+                    'Cost',
+                    'Actions',
+                  ].map((header) => (
+                    <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredShipments.map((shipment) => (
+                  <tr key={shipment.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-blue-600">{shipment.id}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{shipment.clientName}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClassName(shipment.status)}`}>
+                        {shipment.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{shipment.method}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{shipment.package}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{shipment.country}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{shipment.weight}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{shipment.dimensions}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{shipment.cost}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="flex space-x-2">
+                        <button className="text-blue-600 hover:text-blue-900"><Eye className="h-4 w-4" /></button>
+                        <button className="text-green-600 hover:text-green-900"><Edit className="h-4 w-4" /></button>
+                        <button className="text-red-600 hover:text-red-900"><Trash className="h-4 w-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      <div className="w-full h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData}>
-            <XAxis dataKey="method" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          {filteredShipments.length === 0 && (
+            <div className="text-center py-6">
+              <p className="text-gray-500">No shipments found matching your filters.</p>
+            </div>
+          )}
 
-      <div className="mt-6 grid grid-cols-3 gap-4 text-center">
-        <div className="p-3 bg-blue-50 rounded-md">
-          <p className="text-sm text-gray-500">Total Shipments</p>
-          <p className="text-xl font-semibold text-gray-800">{totalShipments}</p>
-        </div>
-        <div className="p-3 bg-green-50 rounded-md">
-          <p className="text-sm text-gray-500">Delivered</p>
-          <p className="text-xl font-semibold text-gray-800">{delivered}</p>
-        </div>
-        <div className="p-3 bg-yellow-50 rounded-md">
-          <p className="text-sm text-gray-500">In Transit</p>
-          <p className="text-xl font-semibold text-gray-800">{inTransit}</p>
-        </div>
-      </div>
+          <div className="bg-gray-50 px-6 py-3 flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              Showing {filteredShipments.length} of {shipments.length} shipments
+            </div>
+            <div className="flex space-x-2">
+              <button className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50">Previous</button>
+              <button className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50">Next</button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
 
-export default ShipmentChart;
+export default ShipmentTable;
