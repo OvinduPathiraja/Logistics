@@ -10,7 +10,6 @@ const FinanceStats: React.FC = () => {
   const [shipments, setShipments] = useState<any[]>([]);
   const [methodData, setMethodData] = useState<{ method: string; count: number }[]>([]);
   const [statusData, setStatusData] = useState<{ name: string; value: number }[]>([]);
-  const [timeData, setTimeData] = useState<{ month: string; count: number }[]>([]);
   const [countryData, setCountryData] = useState<{ country: string; count: number }[]>([]);
 
   const [summary, setSummary] = useState({
@@ -24,7 +23,6 @@ const FinanceStats: React.FC = () => {
   const [totalValue, setTotalValue] = useState(0);
   const [avgValue, setAvgValue] = useState(0);
   const [revenueMethodData, setRevenueMethodData] = useState<{ method: string; revenue: number }[]>([]);
-  const [revenueTimeData, setRevenueTimeData] = useState<{ month: string; revenue: number }[]>([]);
   const [topShipments, setTopShipments] = useState<any[]>([]);
 
   useEffect(() => {
@@ -59,14 +57,6 @@ const FinanceStats: React.FC = () => {
       });
       setStatusData(Object.entries(statusMap).map(([status, count]) => ({ name: status, value: count })));
 
-      const timeMap: Record<string, number> = {};
-      data.forEach((d: any) => {
-        const date = new Date(d.Date || d['Shipment Date']);
-        const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-        timeMap[key] = (timeMap[key] || 0) + 1;
-      });
-      setTimeData(Object.entries(timeMap).map(([month, count]) => ({ month, count })));
-
       const countryMap: Record<string, number> = {};
       data.forEach((d: any) => {
         const country = d['Country Shipped From'] || 'Unknown';
@@ -93,18 +83,6 @@ const FinanceStats: React.FC = () => {
         revenue: Math.round(revenue * 100) / 100,
       }));
 
-      const revenueTimeMap: Record<string, number> = {};
-      data.forEach((d: any) => {
-        const date = new Date(d.Date || d['Shipment Date']);
-        const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-        const value = parseFloat(d['Shipment Value'] || d['Value (USD)'] || 0);
-        revenueTimeMap[key] = (revenueTimeMap[key] || 0) + value;
-      });
-      const revenueTimeData = Object.entries(revenueTimeMap).map(([month, revenue]) => ({
-        month,
-        revenue: Math.round(revenue * 100) / 100,
-      }));
-
       const topShipments = [...data]
         .sort((a, b) => parseFloat(b['Shipment Value'] || 0) - parseFloat(a['Shipment Value'] || 0))
         .slice(0, 5);
@@ -112,7 +90,6 @@ const FinanceStats: React.FC = () => {
       setTotalValue(Math.round(totalValue * 100) / 100);
       setAvgValue(avgValue);
       setRevenueMethodData(revenueMethodData);
-      setRevenueTimeData(revenueTimeData);
       setTopShipments(topShipments);
     };
 
@@ -162,17 +139,6 @@ const FinanceStats: React.FC = () => {
         </ResponsiveContainer>
       </ChartCard>
 
-      <ChartCard title="Monthly Shipment Trend">
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={timeData}>
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} />
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartCard>
-
       <ChartCard title="Top 5 Origin Countries">
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={countryData}>
@@ -198,17 +164,6 @@ const FinanceStats: React.FC = () => {
             <Tooltip />
             <Bar dataKey="revenue" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
           </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
-
-      <ChartCard title="Monthly Revenue Trend">
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={revenueTimeData}>
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Line type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} />
-          </LineChart>
         </ResponsiveContainer>
       </ChartCard>
 
