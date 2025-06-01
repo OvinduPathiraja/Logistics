@@ -1,17 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line
+  PieChart, Pie, Cell
 } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
+interface Shipment {
+  Status?: string;
+  'Weight (kg)'?: string;
+  'Transport Method'?: string;
+  'Country Shipped From'?: string;
+  'Shipment Value'?: string;
+  'Value (USD)'?: string;
+  'Client Name'?: string;
+  'Date'?: string;
+  'Shipment Date'?: string;
+}
+
+interface CardProps {
+  label: string;
+  value: string | number;
+  color: string;
+}
+
+interface ChartCardProps {
+  title: string;
+  children: React.ReactNode;
+}
+
 const FinanceStats: React.FC = () => {
-  const [shipments, setShipments] = useState<any[]>([]);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
   const [methodData, setMethodData] = useState<{ method: string; count: number }[]>([]);
   const [statusData, setStatusData] = useState<{ name: string; value: number }[]>([]);
   const [countryData, setCountryData] = useState<{ country: string; count: number }[]>([]);
-
+  const [revenueMethodData, setRevenueMethodData] = useState<{ method: string; revenue: number }[]>([]);
+  const [topShipments, setTopShipments] = useState<Shipment[]>([]);
   const [summary, setSummary] = useState({
     total: 0,
     delivered: 0,
@@ -19,78 +43,91 @@ const FinanceStats: React.FC = () => {
     cancelled: 0,
     avgWeight: 0,
   });
-
   const [totalValue, setTotalValue] = useState(0);
   const [avgValue, setAvgValue] = useState(0);
-  const [revenueMethodData, setRevenueMethodData] = useState<{ method: string; revenue: number }[]>([]);
-  const [topShipments, setTopShipments] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const response = await fetch('https://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod');
-      const result = await response.json();
-      const data = JSON.parse(result.body);
+      try {
+        const res = await fetch('https://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod');
+        const json = await res.json();
+        const data: Shipment[] = JSON.parse(json.body);
+        setShipments(data);
 
-      setShipments(data);
+        const total = data.length;
+        const delivered = data.filter(s => s.Status === 'Delivered').length;
+        const inTransit = data.filter(s => s.Status === 'In Transit').length;
+        const cancelled = data.filter(s => s.Status === 'Cancelled').length;
 
-      const total = data.length;
-      const delivered = data.filter((d: any) => d.Status === 'Delivered').length;
-      const inTransit = data.filter((d: any) => d.Status === 'In Transit').length;
-      const cancelled = data.filter((d: any) => d.Status === 'Cancelled').length;
-      const avgWeight =
-        data.reduce((sum: number, d: any) => sum + parseFloat(d['Weight (kg)'] || 0), 0) / total;
+        const avgWeight = data.reduce((sum, s) => sum + parseFloat(s['Weight (kg)'] || '0'), 0) / total;
 
-      setSummary({ total, delivered, inTransit, cancelled, avgWeight: parseFloat(avgWeight.toFixed(2))
- });
+        setSummary({
+          total,
+          delivered,
+          inTransit,
+          cancelled,
+          avgWeight: parseFloat(avgWeight.toFixed(2)),
+        });
 
-      const methodMap: Record<string, number> = {};
-      data.forEach((d: any) => {
-        const method = d['Transport Method'] || 'Unknown';
-        methodMap[method] = (methodMap[method] || 0) + 1;
-      });
-      setMethodData(Object.entries(methodMap).map(([method, count]) => ({ method, count })));
+        // Method count
+        const methodMap: Record<string, number> = {};
+        data.forEach(s => {
+          const method = s['Transport Method'] || 'Unknown';
+          methodMap[method] = (methodMap[method] || 0) + 1;
+        });
+        setMethodData(Object.entries(methodMap).map(([method, count]) => ({ method, count })));
 
-      const statusMap: Record<string, number> = {};
-      data.forEach((d: any) => {
-        const status = d['Status'] || 'Unknown';
-        statusMap[status] = (statusMap[status] || 0) + 1;
-      });
-      setStatusData(Object.entries(statusMap).map(([status, count]) => ({ name: status, value: count })));
+        // Status distribution
+        const statusMap: Record<string, number> = {};
+        data.forEach(s => {
+          const status = s.Status || 'Unknown';
+          statusMap[status] = (statusMap[status] || 0) + 1;
+        });
+        setStatusData(Object.entries(statusMap).map(([name, value]) => ({ name, value })));
 
-      const countryMap: Record<string, number> = {};
-      data.forEach((d: any) => {
-        const country = d['Country Shipped From'] || 'Unknown';
-        countryMap[country] = (countryMap[country] || 0) + 1;
-      });
-      const sortedCountries = Object.entries(countryMap)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([country, count]) => ({ country, count }));
-      setCountryData(sortedCountries);
+        // Country origin
+        const countryMap: Record<string, number> = {};
+        data.forEach(s => {
+          const country = s['Country Shipped From'] || 'Unknown';
+          countryMap[country] = (countryMap[country] || 0) + 1;
+        });
+        const topCountries = Object.entries(countryMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([country, count]) => ({ country, count }));
+        setCountryData(topCountries);
 
-      const values = data.map((d: any) => parseFloat(d['Shipment Value'] || d['Value (USD)'] || 0));
-      const totalValue = values.reduce((sum: number, val: number) => sum + val, 0);
-      const avgValue = Math.round((totalValue / values.length) * 100) / 100;
+        // Shipment values
+        const values = data.map(s => parseFloat(s['Shipment Value'] || s['Value (USD)'] || '0'));
+        const totalVal = values.reduce((sum, v) => sum + v, 0);
+        const avgVal = totalVal / values.length;
 
-      const revenueByMethod: Record<string, number> = {};
-      data.forEach((d: any) => {
-        const method = d['Transport Method'] || 'Unknown';
-        const value = parseFloat(d['Shipment Value'] || d['Value (USD)'] || 0);
-        revenueByMethod[method] = (revenueByMethod[method] || 0) + value;
-      });
-      const revenueMethodData = Object.entries(revenueByMethod).map(([method, revenue]) => ({
-        method,
-        revenue: Math.round(revenue * 100) / 100,
-      }));
+        setTotalValue(parseFloat(totalVal.toFixed(2)));
+        setAvgValue(parseFloat(avgVal.toFixed(2)));
 
-      const topShipments = [...data]
-        .sort((a, b) => parseFloat(b['Shipment Value'] || 0) - parseFloat(a['Shipment Value'] || 0))
-        .slice(0, 5);
+        // Revenue by method
+        const revenueMap: Record<string, number> = {};
+        data.forEach(s => {
+          const method = s['Transport Method'] || 'Unknown';
+          const val = parseFloat(s['Shipment Value'] || s['Value (USD)'] || '0');
+          revenueMap[method] = (revenueMap[method] || 0) + val;
+        });
+        const revenueData = Object.entries(revenueMap).map(([method, revenue]) => ({
+          method,
+          revenue: parseFloat(revenue.toFixed(2)),
+        }));
+        setRevenueMethodData(revenueData);
 
-      setTotalValue(Math.round(totalValue * 100) / 100);
-      setAvgValue(avgValue);
-      setRevenueMethodData(revenueMethodData);
-      setTopShipments(topShipments);
+        // Top 5 high-value shipments
+        const top = [...data]
+          .sort((a, b) =>
+            parseFloat(b['Shipment Value'] || '0') - parseFloat(a['Shipment Value'] || '0')
+          )
+          .slice(0, 5);
+        setTopShipments(top);
+      } catch (err) {
+        console.error('Failed to fetch shipment data:', err);
+      }
     };
 
     fetchData();
@@ -100,16 +137,18 @@ const FinanceStats: React.FC = () => {
     <div className="space-y-8 p-6">
       <h1 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         <Card label="Total" value={summary.total} color="bg-blue-100" />
         <Card label="Delivered" value={summary.delivered} color="bg-green-100" />
         <Card label="In Transit" value={summary.inTransit} color="bg-yellow-100" />
         <Card label="Cancelled" value={summary.cancelled} color="bg-red-100" />
         <Card label="Avg Weight (kg)" value={summary.avgWeight} color="bg-gray-100" />
-        <Card label="Total Shipment Value ($)" value={totalValue} color="bg-purple-100" />
-        <Card label="Avg Shipment Value ($)" value={avgValue} color="bg-indigo-100" />
+        <Card label="Total Value ($)" value={totalValue} color="bg-purple-100" />
+        <Card label="Avg Value ($)" value={avgValue} color="bg-indigo-100" />
       </div>
 
+      {/* Charts */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="w-full md:w-1/2">
           <ChartCard title="By Transport Method">
@@ -133,7 +172,6 @@ const FinanceStats: React.FC = () => {
                   dataKey="value"
                   nameKey="name"
                   outerRadius={100}
-                  fill="#8884d8"
                   label
                 >
                   {statusData.map((_, i) => (
@@ -146,7 +184,6 @@ const FinanceStats: React.FC = () => {
           </ChartCard>
         </div>
       </div>
-
 
       <ChartCard title="Top 5 Origin Countries">
         <ResponsiveContainer width="100%" height={250}>
@@ -186,8 +223,8 @@ const FinanceStats: React.FC = () => {
                 <tr key={i} className="border-b">
                   <td className="p-2">{s['Client Name'] || 'N/A'}</td>
                   <td className="p-2">{s['Transport Method'] || 'Unknown'}</td>
-                  <td className="p-2">{parseFloat(s['Shipment Value'] || 0).toFixed(2)}</td>
-                  <td className="p-2">{s['Date'] || s['Shipment Date']}</td>
+                  <td className="p-2">{parseFloat(s['Shipment Value'] || '0').toFixed(2)}</td>
+                  <td className="p-2">{s.Date || s['Shipment Date'] || 'N/A'}</td>
                 </tr>
               ))}
             </tbody>
@@ -200,14 +237,14 @@ const FinanceStats: React.FC = () => {
 
 export default FinanceStats;
 
-const Card = ({ label, value, color }: { label: string; value: string | number; color: string }) => (
+const Card: React.FC<CardProps> = ({ label, value, color }) => (
   <div className={`p-4 rounded shadow ${color}`}>
     <p className="text-xs text-gray-500">{label}</p>
     <p className="text-lg font-bold text-gray-800">{value}</p>
   </div>
 );
 
-const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
   <div className="bg-white p-4 rounded shadow">
     <h2 className="text-md font-semibold mb-4 text-gray-700">{title}</h2>
     {children}
