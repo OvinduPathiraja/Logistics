@@ -44,7 +44,7 @@ const FinanceStats: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod');
+        const response = await fetch('https://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod');
         const result = await response.json();
         const data = typeof result.body === 'string' ? JSON.parse(result.body) : result.body;
 
