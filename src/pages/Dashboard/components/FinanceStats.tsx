@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
-import { useAuth } from 'react-oidc-context'; 
+import { useAuth } from 'react-oidc-context';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -24,8 +24,8 @@ const ChartCard = ({ title, children }: { title: string; children: React.ReactNo
 const FinanceStats: React.FC = () => {
   const auth = useAuth();
   const userEmail = auth.user?.profile?.email ?? '';
+  const isAdmin = (auth.user?.profile?.['cognito:groups'] as string[] | undefined)?.includes('Admins');
 
-  const [shipments, setShipments] = useState<any[]>([]);
   const [methodData, setMethodData] = useState<{ method: string; count: number }[]>([]);
   const [statusData, setStatusData] = useState<{ name: string; value: number }[]>([]);
   const [countryData, setCountryData] = useState<{ country: string; count: number }[]>([]);
@@ -44,22 +44,22 @@ const FinanceStats: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('https://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod');
+        const response = await fetch('http://corsproxy.io/?url=https://xa4rzy5lkg.execute-api.eu-north-1.amazonaws.com/prod');
         const result = await response.json();
-        const data = JSON.parse(result.body);
+        const data = typeof result.body === 'string' ? JSON.parse(result.body) : result.body;
 
-        const userShipments = data.filter((d: any) =>
-          d['Client Email']?.toLowerCase() === userEmail.toLowerCase()
-        );
-
-        setShipments(userShipments);
+        const userShipments = isAdmin
+          ? data
+          : data.filter((d: any) =>
+              d['Email']?.toLowerCase() === userEmail.toLowerCase()
+            );
 
         const total = userShipments.length;
         const delivered = userShipments.filter((d: any) => d.Status === 'Delivered').length;
         const inTransit = userShipments.filter((d: any) => d.Status === 'In Transit').length;
         const cancelled = userShipments.filter((d: any) => d.Status === 'Cancelled').length;
         const avgWeight = userShipments.reduce((sum: number, d: any) =>
-          sum + parseFloat(d['Weight (kg)'] || 0), 0) / (total || 1);
+          sum + parseFloat(d['Weight (kg)'] || '0'), 0) / (total || 1);
 
         setSummary({
           total,
@@ -70,11 +70,29 @@ const FinanceStats: React.FC = () => {
         });
 
         const methodMap: Record<string, number> = {};
+        const revenueByMethod: Record<string, number> = {};
+        const values: number[] = [];
+
         userShipments.forEach((d: any) => {
           const method = d['Transport Method'] || 'Unknown';
+          const value =
+            parseFloat(d['Package Cost'] || '0') +
+            parseFloat(d['Logistic Cost'] || '0') +
+            parseFloat(d['Transportation Cost'] || '0') +
+            parseFloat(d['Tax'] || '0');
+
+          values.push(value);
           methodMap[method] = (methodMap[method] || 0) + 1;
+          revenueByMethod[method] = (revenueByMethod[method] || 0) + value;
         });
+
         setMethodData(Object.entries(methodMap).map(([method, count]) => ({ method, count })));
+        setRevenueMethodData(
+          Object.entries(revenueByMethod).map(([method, revenue]) => ({
+            method,
+            revenue: Math.round(revenue * 100) / 100,
+          }))
+        );
 
         const statusMap: Record<string, number> = {};
         userShipments.forEach((d: any) => {
@@ -94,32 +112,24 @@ const FinanceStats: React.FC = () => {
           .map(([country, count]) => ({ country, count }));
         setCountryData(sortedCountries);
 
-       const values: number[] = userShipments.map((d: any) =>
-          parseFloat(d['Shipment Value'] || d['Value (USD)'] || 0)
-        );
-
-        const totalVal = values.reduce((sum: number, val: number) => sum + val, 0);
+        const totalVal = values.reduce((sum, val) => sum + val, 0);
         const avgVal = totalVal / (values.length || 1);
-
-
-        const revenueByMethod: Record<string, number> = {};
-        userShipments.forEach((d: any) => {
-          const method = d['Transport Method'] || 'Unknown';
-          const value = parseFloat(d['Shipment Value'] || d['Value (USD)'] || 0);
-          revenueByMethod[method] = (revenueByMethod[method] || 0) + value;
-        });
-        const revenueMethodData = Object.entries(revenueByMethod).map(([method, revenue]) => ({
-          method,
-          revenue: Math.round(revenue * 100) / 100,
-        }));
-
-        const top = [...userShipments]
-          .sort((a, b) => parseFloat(b['Shipment Value'] || 0) - parseFloat(a['Shipment Value'] || 0))
-          .slice(0, 5);
-
         setTotalValue(Math.round(totalVal * 100) / 100);
         setAvgValue(Math.round(avgVal * 100) / 100);
-        setRevenueMethodData(revenueMethodData);
+
+        const top = [...userShipments]
+          .filter((d: any) => d['Status']?.toLowerCase() !== 'cancelled')
+          .map((d: any) => ({
+            ...d,
+            _shipmentValue:
+              parseFloat(d['Package Cost'] || '0') +
+              parseFloat(d['Logistic Cost'] || '0') +
+              parseFloat(d['Transportation Cost'] || '0') +
+              parseFloat(d['Tax'] || '0'),
+          }))
+          .sort((a, b) => b._shipmentValue - a._shipmentValue)
+          .slice(0, 5);
+
         setTopShipments(top);
       } catch (err) {
         console.error('Failed to fetch shipment data:', err);
@@ -127,7 +137,7 @@ const FinanceStats: React.FC = () => {
     };
 
     if (userEmail) fetchData();
-  }, [userEmail]);
+  }, [userEmail, isAdmin]);
 
   return (
     <div className="space-y-8 p-6">
@@ -197,10 +207,12 @@ const FinanceStats: React.FC = () => {
           {topShipments.map((shipment, index) => (
             <li key={index} className="py-2">
               <div className="flex justify-between text-sm">
-                <span className="font-medium">{shipment['Shipment ID'] || 'Unknown ID'}</span>
-                <span>${shipment['Shipment Value'] || shipment['Value (USD)']}</span>
+                <span className="font-medium">{shipment['Client Name'] || 'Unknown ID'}</span>
+                <span>${shipment._shipmentValue.toFixed(2)}</span>
               </div>
-              <div className="text-xs text-gray-500">{shipment['Transport Method']}, {shipment['Status']}</div>
+              <div className="text-xs text-gray-500">
+                {shipment['Transport Method']}, {shipment['Status']}
+              </div>
             </li>
           ))}
         </ul>

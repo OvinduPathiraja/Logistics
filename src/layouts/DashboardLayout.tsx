@@ -13,7 +13,8 @@ import {
   X,
   Bell,
   PackageOpen,
-  ChevronDown
+  ChevronDown,
+  Link
 } from 'lucide-react';
 
 const DashboardLayout: React.FC = () => {
@@ -32,14 +33,15 @@ const DashboardLayout: React.FC = () => {
   window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
 };
 
+  const isAdmin = (auth.user?.profile?.['cognito:groups'] as string[] | undefined)?.includes('Admins');
 
   const menuItems = [
     { icon: <LayoutDashboard size={20} />, name: "Dashboard", path: "/dashboard" },
     { icon: <Package size={20} />, name: "Logistics", path: "/logistics" },
     { icon: <Map size={20} />, name: "Map", path: "/map" },
-    { icon: <BarChart3 size={20} />, name: "Finance", path: "/dashboard/finance" },
+    { icon: <BarChart3 size={20} />, name: "Finance", path: "/finance" },
     { icon: <ShoppingCart size={20} />, name: "Inventory", path: "/dashboard/inventory" },
-    { icon: <Users size={20} />, name: "Customers", path: "/dashboard/customers" },
+    { icon: <Users size={20} />, name: "Customers", path: "/dashboard/users" },
   ];
 
   const userEmail = auth.user?.profile.email;
@@ -109,6 +111,21 @@ const DashboardLayout: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="flex items-center justify-between h-16 px-6 bg-white shadow z-10">
+          <div>
+            {isAdmin && (
+              <div className="flex items-center space-x-4 z-20">
+                <h1 className="text-lg font-bold text-gray-800">Admin Dashboard</h1>
+                <Link
+                  to="/dashboard/users"
+                  className="inline-block px-3 py-1 border border-gray-300 rounded text-sm text-gray-800 hover:bg-gray-100 transition"
+                >
+                  Users
+                </Link>
+              </div>
+            )}
+
+
+          </div>
           <button 
             className="lg:hidden"
             onClick={() => setSidebarOpen(true)}

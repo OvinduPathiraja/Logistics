@@ -6,11 +6,11 @@ const AuthGuard: React.FC = () => {
   const auth = useAuth();
 
   if (auth.isLoading) {
-    return <div>Loading...</div>; // Or a loading spinner
+    return <div>Loading...</div>; 
   }
 
   if (!auth.isAuthenticated) {
-    auth.signinRedirect(); // 🔁 Redirect to Cognito login
+    auth.signinRedirect(); 
     return null;
   }
 

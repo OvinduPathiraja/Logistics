@@ -1,11 +1,11 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
+import FinanceDetails from './pages/Logistics/FinanceDetails';
 
-// Layouts
 import DashboardLayout from './layouts/DashboardLayout';
+import AdminUserList from './pages/AdminUserList';
 
-// Pages
 import HomePage from './pages/Home/HomePage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import LogisticsPage from './pages/Logistics/LogisticsPage';
@@ -15,7 +15,6 @@ import MapPage from './pages/Map/Map';
 import CsvUploadForm from './pages/Logistics/components/NewShipment';
 import Home2 from './pages/Home/Home2';
 
-// Auth components
 import AuthGuard from './components/auth/AuthGuard';
 
 function App() {
@@ -44,24 +43,21 @@ function App() {
 
   return (
     <Routes>
-      {/* Public routes */}
       <Route path="/" element={<HomePage />} />
       <Route path="/home" element={<Home2 />} />
-      
-      {/* Redirect to dashboard if authenticated */}
-      
-      {/* Protected routes */}
+
       <Route element={<AuthGuard />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/logistics" element={<LogisticsPage />} />
           <Route path="/map" element={<MapPage />} />
+          <Route path='/finance' element={<FinanceDetails/>}/>
           <Route path="/logistics/new-shipment" element={<CsvUploadForm />} />
+          <Route path="/dashboard/users" element={<AdminUserList />} />
         </Route>
       </Route>
 
       
-      {/* Catch-all route */}
       <Route path="/404" element={<NotFoundPage />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>

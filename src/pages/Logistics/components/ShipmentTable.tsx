@@ -52,7 +52,10 @@ const ShipmentTable: React.FC<ShipmentProps> = ({ filters }) => {
           cost: `$${parseFloat(item['Logistic Cost']).toFixed(2)}`,
         }));
 
-        const userShipments = formattedShipments.filter(shipment => shipment.email === userEmail);
+        const isAdmin = (auth.user?.profile?.['cognito:groups'] as string[] | undefined)?.includes('Admins');
+        const userShipments = isAdmin
+          ? formattedShipments
+          : formattedShipments.filter(shipment => shipment.email === userEmail);
 
         setShipments(userShipments);
       } catch (error) {
@@ -66,6 +69,7 @@ const ShipmentTable: React.FC<ShipmentProps> = ({ filters }) => {
       fetchShipments();
     }
   }, [userEmail]);
+
 
   const filteredShipments = shipments.filter((shipment) => {
     const matchesClient = filters.clientName
