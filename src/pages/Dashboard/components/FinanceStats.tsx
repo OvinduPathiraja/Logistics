@@ -94,9 +94,13 @@ const FinanceStats: React.FC = () => {
           .map(([country, count]) => ({ country, count }));
         setCountryData(sortedCountries);
 
-        const values = userShipments.map((d: any) => parseFloat(d['Shipment Value'] || d['Value (USD)'] || 0));
-        const totalVal = values.reduce((sum, val) => sum + val, 0);
+       const values: number[] = userShipments.map((d: any) =>
+          parseFloat(d['Shipment Value'] || d['Value (USD)'] || 0)
+        );
+
+        const totalVal = values.reduce((sum: number, val: number) => sum + val, 0);
         const avgVal = totalVal / (values.length || 1);
+
 
         const revenueByMethod: Record<string, number> = {};
         userShipments.forEach((d: any) => {
