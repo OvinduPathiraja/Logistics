@@ -39,6 +39,7 @@ const CsvUploadForm = () => {
       const blob = new Blob([modifiedCsv], { type: 'text/csv' });
 
       const timestamp = Date.now();
+      console.log('Uploading CSV to:', userEmail, timestamp);
       const url = `https://xwf1vv5ixd.execute-api.eu-north-1.amazonaws.com/prod/ultraod-s3-1/${userEmail}${timestamp}.csv`;
 
       const res = await fetch(url, {
